@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3D Vikebygd Map with AR & Toggle View</title>
+
+  <!-- MapTiler SDK and AR Control -->
+  <script src="https://cdn.maptiler.com/maptiler-sdk-js/v3.0.1/maptiler-sdk.umd.min.js"></script>
+  <link href="https://cdn.maptiler.com/maptiler-sdk-js/v3.0.1/maptiler-sdk.css" rel="stylesheet" />
+  <script src="https://cdn.maptiler.com/maptiler-ar-control/v3.0.2/maptiler-ar-control.umd.min.js"></script>
+
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+    }
+
+    #map {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 100%;
+    }
+
+    .map-btn {
+      position: absolute;
+      padding: 10px 16px;
+      background: #1a73e8;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      cursor: pointer;
+      z-index: 2;
+    }
+
+    #flyBtn {
+      bottom: 10px;
+      right: 10px;
+    }
+
+    #toggleStyleBtn {
+      bottom: 60px;
+      right: 10px;
+    }
+
+    .map-btn:hover {
+      background: #0c56c5;
+    }
+
+    #overlay {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: #ffffff;
+      z-index: 3;
+      display: none;
+    }
+
+    #overlay div {
+      color: rgb(71, 76, 87);
+      position: absolute;
+      width: fit-content;
+      height: fit-content;
+      right: 0;
+      left: 0;
+      bottom: 0;
+      top: 0;
+      margin: auto;
+      padding: 30px;
+      font: 12px/20px Helvetica Neue, Arial, Helvetica, sans-serif;
+    }
+
+    .blink_me {
+      animation: blinker 1s linear infinite;
+    }
+
+    @keyframes blinker {
+      50% { opacity: 0.2; }
+    }
+  </style>
+</head>
+<body>
+  <div id="overlay">
+    <div class="blink_me">computing model</div>
+  </div>
+
+  <div id="map"></div>
+  <button id="flyBtn" class="map-btn">Fly to Vikebygd</button>
+  <button id="toggleStyleBtn" class="map-btn">Satellite View</button>
+
+  <script>
+    maptilersdk.config.apiKey = 'lLH0oNbHKE6msqk5TBFd';
+
+    const vikebygdCoords = [5.58722, 59.59417];
+    let currentStyle = 'OUTDOOR';
+
+    const map = new maptilersdk.Map({
+      container: 'map',
+      style: maptilersdk.MapStyle.OUTDOOR,
+      center: vikebygdCoords,
+      zoom: 14,
+      pitch: 75,
+      bearing: -20,
+      maxPitch: 85,
+      terrain: true,
+    });
+
+    map.dragRotate.enable();
+    map.touchZoomRotate.enableRotation();
+
+    const marker = new maptilersdk.Marker({ color: 'red' })
+      .setLngLat(vikebygdCoords)
+      .addTo(map);
+
+    document.getElementById('flyBtn').addEventListener('click', () => {
+      map.flyTo({
+        center: vikebygdCoords,
+        zoom: 15,
+        pitch: 75,
+        bearing: -30,
+        speed: 1.2,
+        curve: 1.8,
+        essential: true
+      });
+    });
+
+    // Toggle between Outdoor and Satellite
+    document.getElementById('toggleStyleBtn').addEventListener('click', () => {
+      if (currentStyle === 'OUTDOOR') {
+        map.setStyle(maptilersdk.MapStyle.SATELLITE);
+        currentStyle = 'SATELLITE';
+        document.getElementById('toggleStyleBtn').textContent = 'Outdoor View';
+      } else {
+        map.setStyle(maptilersdk.MapStyle.OUTDOOR);
+        currentStyle = 'OUTDOOR';
+        document.getElementById('toggleStyleBtn').textContent = 'Satellite View';
+      }
+
+      // Re-add marker after style change
+      map.once('style.load', () => {
+        marker.addTo(map);
+      });
+    });
+
+    map.on("load", () => {
+      const arControl = new maptilerarcontrol.MaptilerARControl({
+        activateAR: false
+      });
+
+      arControl.on("computeStart", () => {
+        overlay.style.display = "inherit";
+      });
+
+      arControl.on("computeEnd", () => {
+        overlay.style.display = "none";
+      });
+
+      map.addControl(arControl, "top-left");
+    });
+  </script>
+</body>
+</html>
